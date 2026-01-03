@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery - BlinkCDN</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <a href="/"
+                            class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                            BlinkCDN
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/"
+                        class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Home</a>
+                    <a href="/dashboard"
+                        class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-4 py-2 rounded-full text-sm font-medium transition-colors">
+                        Upload
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <h1 class="text-3xl font-bold text-gray-900">Public Gallery</h1>
+            <div class="w-full md:w-96 relative">
+                <input type="text" id="searchInput" placeholder="Search images..."
+                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                        fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <!-- Images will be loaded here -->
+        </div>
+
+        <div id="loading" class="hidden py-20 text-center">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p class="mt-2 text-gray-500">Loading images...</p>
+        </div>
+
+        <div id="emptyState" class="hidden py-20 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No images found</h3>
+            <p class="mt-1 text-sm text-gray-500">Try adjusting your search or upload some images.</p>
+        </div>
+
+        <div id="pagination" class="flex justify-center mt-12 gap-2 hidden">
+            <button id="prevPage"
+                class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                Previous
+            </button>
+            <span id="pageInfo" class="px-4 py-2 text-sm text-gray-600 flex items-center">
+                Page 1
+            </span>
+            <button id="nextPage"
+                class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                Next
+            </button>
+        </div>
+
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-sm text-gray-500">
+            &copy; BlinkCDN. Open Source.
+        </div>
+    </footer>
+
+    <script>
+        const galleryDiv = document.getElementById('gallery');
+        const loadingDiv = document.getElementById('loading');
+        const emptyStateDiv = document.getElementById('emptyState');
+        const paginationDiv = document.getElementById('pagination');
+        const prevButton = document.getElementById('prevPage');
+        const nextButton = document.getElementById('nextPage');
+        const pageInfo = document.getElementById('pageInfo');
+        const searchInput = document.getElementById('searchInput');
+
+        let currentPage = 1;
+        const perPage = 12;
+        let currentSearch = '';
+
+        // Debounce function
+        function debounce(func, wait) {
+            let timeout;
+            return function (...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        async function loadImages(page, search) {
+            try {
+                galleryDiv.innerHTML = '';
+                loadingDiv.classList.remove('hidden');
+                emptyStateDiv.classList.add('hidden');
+                paginationDiv.classList.add('hidden');
+
+                const query = new URLSearchParams({
+                    page,
+                    per_page: perPage,
+                    search: search || ''
+                }).toString();
+
+                const response = await fetch(`/images?${query}`);
+                const data = await response.json();
+
+                loadingDiv.classList.add('hidden');
+
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+
+                if (data.images.length === 0) {
+                    emptyStateDiv.classList.remove('hidden');
+                    return;
+                }
+
+                paginationDiv.classList.remove('hidden');
+
+                data.images.forEach(image => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200 border border-gray-100 group';
+                    div.innerHTML = `
+                        <div class="aspect-w-16 aspect-h-12 bg-gray-100 overflow-hidden relative">
+                             <a href="${image.url}" target="_blank" class="block h-48 w-full">
+                                <img src="${image.url}" alt="${image.name}" class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300" loading="lazy">
+                            </a>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-sm font-medium text-gray-900 truncate" title="${image.name}">${image.name}</p>
+                            <div class="mt-2 flex justify-between items-center">
+                                <span class="text-xs text-gray-500 uppercase tracking-wide">Image</span>
+                                <button onclick="navigator.clipboard.writeText(window.location.origin + '${image.url}').then(() => alert('URL copied!'))" 
+                                    class="text-blue-600 hover:text-blue-800 text-xs font-semibold focus:outline-none">
+                                    Copy Link
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    galleryDiv.appendChild(div);
+                });
+
+                // Update pagination
+                prevButton.disabled = page === 1;
+                nextButton.disabled = !data.has_more;
+                pageInfo.textContent = `Page ${page}`;
+
+            } catch (error) {
+                loadingDiv.classList.add('hidden');
+                galleryDiv.innerHTML = `<div class="col-span-full text-center text-red-600">Error loading images: ${error.message}</div>`;
+                console.error('Error:', error);
+            }
+        }
+
+        // Initial load
+        loadImages(currentPage, currentSearch);
+
+        // Search handler
+        searchInput.addEventListener('input', debounce((e) => {
+            currentSearch = e.target.value.trim();
+            currentPage = 1;
+            loadImages(currentPage, currentSearch);
+        }, 500));
+
+        // Pagination handlers
+        prevButton.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                loadImages(currentPage, currentSearch);
+            }
+        });
+
+        nextButton.addEventListener('click', () => {
+            currentPage++;
+            loadImages(currentPage, currentSearch);
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlinkCDN Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        .drop-zone {
+            border: 2px dashed #cbd5e0;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone.dragover {
+            border-color: #4299e1;
+            background-color: #ebf8ff;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-xl font-bold text-gray-800">BlinkCDN</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/gallery"
+                        class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Gallery</a>
+                    <a href="/"
+                        class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Home</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="px-6 py-8">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">Upload Image</h2>
+
+                <form id="uploadForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Image File</label>
+                        <div id="dropZone"
+                            class="drop-zone mt-1 flex justify-center px-6 pt-5 pb-6 border-gray-300 rounded-md cursor-pointer hover:bg-gray-50">
+                            <div class="space-y-1 text-center">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none"
+                                    viewBox="0 0 48 48" aria-hidden="true">
+                                    <path
+                                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <div class="flex text-sm text-gray-600 justify-center">
+                                    <span
+                                        class="relative bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                        <span>Upload a file</span>
+                                        <input id="fileInput" name="file" type="file" class="sr-only" accept="image/*"
+                                            required>
+                                    </span>
+                                    <p class="pl-1">or drag and drop</p>
+                                </div>
+                                <p class="text-xs text-gray-500">
+                                    PNG, JPG, GIF up to 10MB
+                                </p>
+                            </div>
+                        </div>
+                        <div id="fileName" class="mt-2 text-sm text-gray-500 text-center hidden"></div>
+                    </div>
+
+                    <div>
+                        <label for="filePath" class="block text-sm font-medium text-gray-700">File Path/Name
+                            (Optional)</label>
+                        <div class="mt-1">
+                            <input type="text" name="filePath" id="filePathInput"
+                                class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                                placeholder="e.g. blog/header.png">
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">If left empty, original filename will be used in
+                            public/images/</p>
+                    </div>
+
+                    <div>
+                        <button type="submit" id="submitBtn"
+                            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                            Upload
+                        </button>
+                    </div>
+                </form>
+
+                <div id="status" class="mt-6 hidden">
+                    <div class="rounded-md bg-green-50 p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-green-800">Upload Successful!</h3>
+                                <div class="mt-2 text-sm text-green-700">
+                                    <p>Your file is live at:</p>
+                                    <a id="resultUrl" href="#" target="_blank"
+                                        class="font-bold underline break-all mt-1 block"></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="error" class="mt-6 hidden">
+                    <div class="rounded-md bg-red-50 p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                    fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800">Upload Failed</h3>
+                                <div class="mt-2 text-sm text-red-700">
+                                    <p id="errorMessage"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileNameDiv = document.getElementById('fileName');
+        const form = document.getElementById('uploadForm');
+        const filePathInput = document.getElementById('filePathInput');
+
+        // Drag and drop handlers
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                updateFileName();
+            }
+        });
+
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', updateFileName);
+
+        function updateFileName() {
+            if (fileInput.files.length > 0) {
+                fileNameDiv.textContent = `Selected: ${fileInput.files[0].name}`;
+                fileNameDiv.classList.remove('hidden');
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerText;
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Uploading...';
+
+            document.getElementById('status').classList.add('hidden');
+            document.getElementById('error').classList.add('hidden');
+
+            // Convert to Base64
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+
+            reader.onload = async () => {
+                const base64Content = reader.result;
+                let path = filePathInput.value.trim();
+
+                if (!path) {
+                    path = 'public/images/' + file.name;
+                } else if (!path.startsWith('public/')) {
+                    // Start relative paths without public/ in public/images/ unless they specify otherwise?
+                    // User might want full control. But to keep it in the CDN "images" folder, maybe we should prepend?
+                    // Let's assume user knows or we default to public/images if it doesn't look like a path.
+                    path = 'public/images/' + path;
+                }
+
+                try {
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            filePath: path,
+                            content: base64Content,
+                            commitMessage: `Upload ${file.name} via Dashboard`
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        document.getElementById('status').classList.remove('hidden');
+                        document.getElementById('resultUrl').href = data.url;
+                        document.getElementById('resultUrl').textContent = window.location.origin + '/images/' + (path.split('/').pop());
+                        // Note: GitHub URL returned is the html_url on GitHub. User might want the CDN URL.
+                        // "by default netlify will cache the images with it's cdn"
+                        // So the URL should be /images/filename.
+                        // I'll show the CDN URL.
+                        const filename = path.split('/').pop();
+                        document.getElementById('resultUrl').href = '/images/' + filename;
+                        document.getElementById('resultUrl').textContent = window.location.origin + '/images/' + filename;
+                        form.reset();
+                        fileNameDiv.classList.add('hidden');
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (err) {
+                    document.getElementById('error').classList.remove('hidden');
+                    document.getElementById('errorMessage').textContent = err.message || 'Something went wrong';
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = originalText;
+                }
+            };
+
+            reader.onerror = () => {
+                submitBtn.disabled = false;
+                submitBtn.innerText = originalText;
+                alert('Error reading file');
+            };
+        });
+    </script>
+</body>
+
+</html>

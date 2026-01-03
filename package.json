@@ -1,7 +1,7 @@
 {
-  "name": "self-hosted-cdn",
+  "name": "blinkcdn",
   "version": "1.0.0",
-  "description": "A self hosted cdn powered by github repository and netlify for all of your images used in your projects, no need to incude everything in assets",
+  "description": "BlinkCDN - A self-hosted CDN powered by GitHub and Netlify. Minimal, fast, and open source.",
   "main": "index.js",
   "scripts": {
     "start": "node functions/server.js",

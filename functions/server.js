@@ -4,7 +4,13 @@ import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import express from 'express';
 import serverless from 'serverless-http';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // authentication middleware
 const users = {
@@ -14,17 +20,15 @@ const users = {
 const authMiddleware = basicAuth({
     users: users,
     challenge: true,
-    realm: 'Self Hosted CDN'
+    realm: 'BlinkCDN'
 });
 
 const app = express();
 const router = express.Router();
 const PORT = process.env.PORT || 3000;
 
-let sessionId = 0;
-app.use(authMiddleware);  // applying middleware
-
 app.use(bodyParser.json({ limit: '10mb' }));
+
 app.use(express.static('public'));
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
@@ -33,7 +37,12 @@ const REPO_NAME = process.env.REPO_NAME;
 const BRANCH = process.env.BRANCH_NAME || 'main';
 
 const octokit = new Octokit({ auth: GITHUB_TOKEN });
-router.post('/upload', async (req, res) => {
+
+app.get('/dashboard', authMiddleware, (req, res) => {
+    res.sendFile(path.resolve(__dirname, 'views', 'dashboard.html'));
+});
+
+router.post('/upload', authMiddleware, async (req, res) => {
     const { filePath, content, commitMessage } = req.body;
 
     if (!filePath || !content) {
@@ -41,7 +50,6 @@ router.post('/upload', async (req, res) => {
     }
 
     try {
-        // First try to get the file to check if it exists
         let sha;
         try {
             const { data } = await octokit.rest.repos.getContent({
@@ -52,20 +60,17 @@ router.post('/upload', async (req, res) => {
             });
             sha = data.sha;
         } catch (error) {
-            // File doesn't exist, which is fine
             console.log('File does not exist yet');
         }
 
-        // Remove data URL prefix if it exists and convert to Buffer
         const base64Data = content.replace(/^data:image\/\w+;base64,/, '');
 
-        // Create or update the file
         const response = await octokit.rest.repos.createOrUpdateFileContents({
             owner: REPO_OWNER,
             repo: REPO_NAME,
             path: filePath,
             message: commitMessage || `Upload ${filePath}`,
-            content: base64Data,  // GitHub API expects base64 string without the data URL prefix
+            content: base64Data,
             branch: BRANCH,
             sha: sha,
             committer: {
@@ -96,7 +101,7 @@ router.post('/upload', async (req, res) => {
 });
 
 router.get('/images', async (req, res) => {
-    const { page = 1, per_page = 12 } = req.query;
+    const { page = 1, per_page = 12, search = '' } = req.query;
 
     try {
         const { data } = await octokit.rest.repos.getContent({
@@ -110,35 +115,48 @@ router.get('/images', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Images folder not found or is empty' });
         }
 
-        const images = data
-            .filter((item) => item.type === 'file' && /\.(png|jpe?g|gif)$/i.test(item.name))
-            .slice((page - 1) * per_page, page * per_page)
-            .map((item) => ({
-                name: item.name,
-                download_url: item.download_url,
-                url: "/images/" + item.name
-            }));
+        let filteredImages = data
+            .filter((item) => item.type === 'file' && /\.(png|jpe?g|gif|webp|svg)$/i.test(item.name));
 
-        res.json({ success: true, images });
+        if (search) {
+            const term = search.toString().toLowerCase();
+            filteredImages = filteredImages.filter(item => item.name.toLowerCase().includes(term));
+        }
+
+        const start = (page - 1) * per_page;
+        const end = page * per_page;
+        const pagedImages = filteredImages.slice(start, end);
+
+        const images = pagedImages.map((item) => ({
+            name: item.name,
+            download_url: item.download_url,
+            url: "/images/" + item.name
+        }));
+
+        res.json({
+            success: true,
+            images,
+            total: filteredImages.length,
+            page: parseInt(page),
+            per_page: parseInt(per_page),
+            has_more: end < filteredImages.length
+        });
 
     } catch (error) {
         console.error('Error:', error.response?.data || error.message);
+        if (error.status === 404) {
+            return res.json({ success: true, images: [], total: 0 });
+        }
         res.status(500).json({ success: false, error: 'Error fetching images' });
     }
 });
 
-// router.get('/', (req, res) => {
-//   res.sendFile(path.join(__dirname, 'public', 'index.html'));
-// });
-
-// router.get('/', (req, res) => {
-//   res.sendFile(path.join(__dirname, 'functions', 'public', 'gallery.html'));
-// });
-
 app.use('', router);
 
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`Server is running on http://localhost:${PORT}`);
+    });
+}
 
 export const handler = serverless(app);
